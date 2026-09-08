@@ -6,3 +6,4 @@ sqlalchemy
 uvicorn
 bcrypt
 python-jose
+email-validator

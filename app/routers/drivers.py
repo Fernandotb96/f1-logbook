@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
@@ -7,7 +7,7 @@ from ..database import get_db
 router = APIRouter(prefix="/drivers", tags=["drivers"])
 
 
-@router.post("/", response_model=schemas.DriverOut, status_code=201)
+@router.post("/", response_model=schemas.DriverOut, status_code=status.HTTP_201_CREATED)
 def create_driver(driver: schemas.DriverCreate, db: Session = Depends(get_db)):
     new_driver = models.Driver(**driver.model_dump())
     db.add(new_driver)
@@ -25,15 +25,25 @@ def list_drivers(db: Session = Depends(get_db)):
 def get_driver(driver_id: int, db: Session = Depends(get_db)):
     driver = db.query(models.Driver).filter(models.Driver.id == driver_id).first()
     if not driver:
-        raise HTTPException(status_code=404, detail="Driver not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Driver not found",
+        )
     return driver
 
 
 @router.put("/{driver_id}", response_model=schemas.DriverOut)
-def update_driver(driver_id: int, updated: schemas.DriverUpdate, db: Session = Depends(get_db)):
+def update_driver(
+    driver_id: int,
+    updated: schemas.DriverUpdate,
+    db: Session = Depends(get_db),
+):
     driver = db.query(models.Driver).filter(models.Driver.id == driver_id).first()
     if not driver:
-        raise HTTPException(status_code=404, detail="Driver not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Driver not found",
+        )
 
     for field, value in updated.model_dump().items():
         setattr(driver, field, value)
@@ -43,11 +53,14 @@ def update_driver(driver_id: int, updated: schemas.DriverUpdate, db: Session = D
     return driver
 
 
-@router.delete("/{driver_id}", status_code=204)
+@router.delete("/{driver_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_driver(driver_id: int, db: Session = Depends(get_db)):
     driver = db.query(models.Driver).filter(models.Driver.id == driver_id).first()
     if not driver:
-        raise HTTPException(status_code=404, detail="Driver not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Driver not found",
+        )
 
     db.delete(driver)
     db.commit()
