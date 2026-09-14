@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
@@ -18,12 +19,12 @@ def create_driver(driver: schemas.DriverCreate, db: Session = Depends(get_db)):
 
 @router.get("/", response_model=list[schemas.DriverOut])
 def list_drivers(db: Session = Depends(get_db)):
-    return db.query(models.Driver).all()
+    return db.scalars(select(models.Driver)).all()
 
 
 @router.get("/{driver_id}", response_model=schemas.DriverOut)
 def get_driver(driver_id: int, db: Session = Depends(get_db)):
-    driver = db.query(models.Driver).filter(models.Driver.id == driver_id).first()
+    driver = db.scalar(select(models.Driver).where(models.Driver.id == driver_id))
     if not driver:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -32,20 +33,20 @@ def get_driver(driver_id: int, db: Session = Depends(get_db)):
     return driver
 
 
-@router.put("/{driver_id}", response_model=schemas.DriverOut)
+@router.patch("/{driver_id}", response_model=schemas.DriverOut)
 def update_driver(
     driver_id: int,
     updated: schemas.DriverUpdate,
     db: Session = Depends(get_db),
 ):
-    driver = db.query(models.Driver).filter(models.Driver.id == driver_id).first()
+    driver = db.scalar(select(models.Driver).where(models.Driver.id == driver_id))
     if not driver:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Driver not found",
         )
 
-    for field, value in updated.model_dump().items():
+    for field, value in updated.model_dump(exclude_unset=True).items():
         setattr(driver, field, value)
 
     db.commit()
@@ -55,7 +56,7 @@ def update_driver(
 
 @router.delete("/{driver_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_driver(driver_id: int, db: Session = Depends(get_db)):
-    driver = db.query(models.Driver).filter(models.Driver.id == driver_id).first()
+    driver = db.scalar(select(models.Driver).where(models.Driver.id == driver_id))
     if not driver:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

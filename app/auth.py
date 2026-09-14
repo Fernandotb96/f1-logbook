@@ -8,6 +8,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
+from app.models import User
 from . import models
 from .database import get_db
 
@@ -46,7 +47,7 @@ def create_access_token(user_id: int) -> str:
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(auth_scheme),
     db: Session = Depends(get_db),
-) -> models.User:
+) -> type[User]:
     """Use as a dependency in protected routes.
     Read the token from the request, validate it, and return the user.
     If the token is invalid or expired, return 401."""

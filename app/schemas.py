@@ -17,8 +17,14 @@ class DriverCreate(DriverBase):
     pass
 
 
-class DriverUpdate(DriverBase):
-    pass
+class DriverUpdate(BaseModel):
+    name: Optional[str] = None
+    nationality: Optional[str] = None
+    team: Optional[str] = None
+    wins_total: Optional[int] = None
+    championships_won: Optional[int] = None
+    photo_url: Optional[str] = None
+    photo_credit: Optional[str] = None
 
 
 class DriverOut(DriverBase):
@@ -52,3 +58,17 @@ class UserLogin(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+class FavoriteDriverCreate(BaseModel):
+    driver_id: int
+
+
+class FavoriteDriverOut(BaseModel):
+    id: int
+    user_id: int
+    driver_id: int
+    driver: DriverOut
+
+    class Config:
+        from_attributes = True

@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 
 from .. import models, schemas
 from ..auth import create_access_token, get_current_user, hash_password, verify_password
 from ..database import get_db
 
-router = APIRouter(prefix="/users", tags=["users"])
+router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post(
@@ -14,13 +15,10 @@ router = APIRouter(prefix="/users", tags=["users"])
     status_code=status.HTTP_201_CREATED,
 )
 def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    existing_user = (
-        db.query(models.User)
-        .filter(
+    existing_user = db.scalar(select(models.User).where(
             (models.User.email == user.email)
             | (models.User.username == user.username)
         )
-        .first()
     )
     if existing_user:
         raise HTTPException(
@@ -49,7 +47,7 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=schemas.Token)
 def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
-    db_user = db.query(models.User).filter(models.User.email == user.email).first()
+    db_user = db.scalar(select(models.User).where(models.User.email == user.email))
 
     if not db_user or not verify_password(user.password, db_user.hashed_password):
         raise HTTPException(
