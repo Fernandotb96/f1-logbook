@@ -15,7 +15,9 @@ router = APIRouter(prefix="/auth", tags=["auth"])
     status_code=status.HTTP_201_CREATED,
 )
 def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    existing_user = db.scalar(select(models.User).where(
+    """Create a new user account."""
+    existing_user = db.scalar(
+        select(models.User).where(
             (models.User.email == user.email)
             | (models.User.username == user.username)
         )
@@ -47,6 +49,7 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=schemas.Token)
 def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
+    """Authenticate a user and return a JWT access token."""
     db_user = db.scalar(select(models.User).where(models.User.email == user.email))
 
     if not db_user or not verify_password(user.password, db_user.hashed_password):
@@ -61,4 +64,5 @@ def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
 
 @router.get("/me", response_model=schemas.UserOut)
 def read_me(current_user: models.User = Depends(get_current_user)):
+    """Return the currently authenticated user."""
     return current_user
