@@ -19,3 +19,13 @@ def root():
 
 
 # uvicorn app.main:app --reload
+
+# TODO! Crear endpoints para todos los favoritos (circuitos y carreras)
+
+# TODO! Crear tablas con historial de pilotos
+
+# TODO! Crear tablas con resultado de carrera
+
+# TODO! Crear sync para sincronizar datos con la API Jolpica
+
+# Duda: ¿Hay una manera mejor de crear admin que no sea directamente desde postgres?

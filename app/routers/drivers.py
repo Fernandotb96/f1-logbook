@@ -3,13 +3,18 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
+from ..auth import require_admin
 from ..database import get_db
 
 router = APIRouter(prefix="/drivers", tags=["drivers"])
 
 
 @router.post("/", response_model=schemas.DriverOut, status_code=status.HTTP_201_CREATED)
-def create_driver(driver: schemas.DriverCreate, db: Session = Depends(get_db)):
+def create_driver(
+        driver: schemas.DriverCreate,
+        db: Session = Depends(get_db),
+        current_admin: models.User = Depends(require_admin),
+):
     """Create a new driver."""
     new_driver = models.Driver(**driver.model_dump())
     db.add(new_driver)
@@ -38,9 +43,10 @@ def get_driver(driver_id: int, db: Session = Depends(get_db)):
 
 @router.patch("/{driver_id}", response_model=schemas.DriverOut)
 def update_driver(
-    driver_id: int,
-    updated: schemas.DriverUpdate,
-    db: Session = Depends(get_db),
+        driver_id: int,
+        updated: schemas.DriverUpdate,
+        db: Session = Depends(get_db),
+        current_admin: models.User = Depends(require_admin),
 ):
     """Partially update a driver. Only fields included in the request body are changed."""
     driver = db.scalar(select(models.Driver).where(models.Driver.id == driver_id))
@@ -59,7 +65,11 @@ def update_driver(
 
 
 @router.delete("/{driver_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_driver(driver_id: int, db: Session = Depends(get_db)):
+def delete_driver(
+        driver_id: int,
+        db: Session = Depends(get_db),
+        current_admin: models.User = Depends(require_admin),
+):
     """Delete a driver by ID."""
     driver = db.scalar(select(models.Driver).where(models.Driver.id == driver_id))
     if not driver:
@@ -70,4 +80,3 @@ def delete_driver(driver_id: int, db: Session = Depends(get_db)):
 
     db.delete(driver)
     db.commit()
-    return None

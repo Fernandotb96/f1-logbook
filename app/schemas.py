@@ -45,6 +45,7 @@ class UserOut(BaseModel):
     username: str
     email: EmailStr
     created_at: datetime
+    is_admin: bool
 
     class Config:
         from_attributes = True

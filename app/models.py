@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import DateTime, ForeignKey, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, ForeignKey, UniqueConstraint, false
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -37,6 +37,12 @@ class User(Base):
         DateTime(timezone=True),
         server_default=func.now(),
     )
+    is_admin: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=false(),
+    )
 
 
 class FavoriteDriver(Base):
@@ -44,7 +50,7 @@ class FavoriteDriver(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id"),
+        ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
     )
     driver_id: Mapped[int] = mapped_column(
@@ -52,4 +58,3 @@ class FavoriteDriver(Base):
         nullable=False,
     )
     driver: Mapped[Driver] = relationship(lazy="joined")
-    __table_args__ = (UniqueConstraint("user_id", "driver_id"),)
