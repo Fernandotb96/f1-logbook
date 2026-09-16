@@ -21,6 +21,20 @@ class Driver(Base):
     photo_credit: Mapped[Optional[str]] = mapped_column()
 
 
+class Circuit(Base):
+    __tablename__ = "circuits"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(nullable=False)
+    location: Mapped[Optional[str]] = mapped_column()
+    country: Mapped[Optional[str]] = mapped_column()
+    length_km: Mapped[Optional[float]] = mapped_column()
+    lap_record: Mapped[Optional[str]] = mapped_column()
+    lap_record_driver: Mapped[Optional[str]] = mapped_column()
+    photo_url: Mapped[Optional[str]] = mapped_column()
+    photo_credit: Mapped[Optional[str]] = mapped_column()
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -58,3 +72,20 @@ class FavoriteDriver(Base):
         nullable=False,
     )
     driver: Mapped[Driver] = relationship(lazy="joined")
+    __table_args__ = (UniqueConstraint("user_id", "driver_id"),)
+
+
+class FavoriteCircuit(Base):
+    __tablename__ = "favorite_circuits"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    circuit_id: Mapped[int] = mapped_column(
+        ForeignKey("circuits.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    circuit: Mapped[Circuit] = relationship(lazy="joined")
+    __table_args__ = (UniqueConstraint("user_id", "circuit_id"),)

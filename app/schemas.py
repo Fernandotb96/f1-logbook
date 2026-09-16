@@ -34,6 +34,39 @@ class DriverOut(DriverBase):
         from_attributes = True
 
 
+class CircuitBase(BaseModel):
+    name: str
+    location: Optional[str] = None
+    country: Optional[str] = None
+    length_km: Optional[float] = None
+    lap_record: Optional[str] = None
+    lap_record_driver: Optional[str] = None
+    photo_url: Optional[str] = None
+    photo_credit: Optional[str] = None
+
+
+class CircuitCreate(CircuitBase):
+    pass
+
+
+class CircuitUpdate(BaseModel):
+    name: Optional[str] = None
+    location: Optional[str] = None
+    country: Optional[str] = None
+    length_km: Optional[float] = None
+    lap_record: Optional[str] = None
+    lap_record_driver: Optional[str] = None
+    photo_url: Optional[str] = None
+    photo_credit: Optional[str] = None
+
+
+class CircuitOut(CircuitBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+
 class UserCreate(BaseModel):
     username: str
     email: EmailStr
@@ -70,6 +103,20 @@ class FavoriteDriverOut(BaseModel):
     user_id: int
     driver_id: int
     driver: DriverOut
+
+    class Config:
+        from_attributes = True
+
+
+class FavoriteCircuitCreate(BaseModel):
+    circuit_id: int
+
+
+class FavoriteCircuitOut(BaseModel):
+    id: int
+    user_id: int
+    circuit_id: int
+    circuit: CircuitOut
 
     class Config:
         from_attributes = True

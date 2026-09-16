@@ -22,9 +22,9 @@ def root():
 
 # TODO! Crear endpoints para todos los favoritos (circuitos y carreras)
 
-# TODO! Crear tablas con historial de pilotos
-
 # TODO! Crear tablas con resultado de carrera
+
+# TODO! Crear tablas con historial de piloto
 
 # TODO! Crear sync para sincronizar datos con la API Jolpica
 
