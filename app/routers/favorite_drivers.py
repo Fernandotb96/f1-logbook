@@ -9,9 +9,6 @@ from ..database import get_db
 router = APIRouter(prefix="/favorites", tags=["favorites"])
 
 
-# Todo! A lo mejor crear varios archivos en lugar de todo en uno mismo? O dejar por secciones?
-#%% FAVORITE DRIVERS
-
 def get_favorite_driver(
         db: Session, user_id: int, driver_id: int) -> models.FavoriteDriver | None:
     """Look up a favorite driver by user and driver. Returns None if it does not exist."""

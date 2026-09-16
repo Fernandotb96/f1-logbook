@@ -2,15 +2,17 @@ from fastapi import FastAPI
 
 from . import models
 from .database import engine
-from .routers import auth, drivers, favorites
+from .routers import auth, circuits, drivers, favorite_circuits, favorite_drivers
 
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="F1 Logbook API")
 
 app.include_router(drivers.router)
+app.include_router(circuits.router)
 app.include_router(auth.router)
-app.include_router(favorites.router)
+app.include_router(favorite_drivers.router)
+app.include_router(favorite_circuits.router)
 
 
 @app.get("/")

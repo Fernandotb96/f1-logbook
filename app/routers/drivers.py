@@ -13,7 +13,7 @@ router = APIRouter(prefix="/drivers", tags=["drivers"])
 def create_driver(
         driver: schemas.DriverCreate,
         db: Session = Depends(get_db),
-        current_admin: models.User = Depends(require_admin),
+        _current_admin: models.User = Depends(require_admin),
 ):
     """Create a new driver."""
     new_driver = models.Driver(**driver.model_dump())
@@ -46,7 +46,7 @@ def update_driver(
         driver_id: int,
         updated: schemas.DriverUpdate,
         db: Session = Depends(get_db),
-        current_admin: models.User = Depends(require_admin),
+        _current_admin: models.User = Depends(require_admin),
 ):
     """Partially update a driver. Only fields included in the request body are changed."""
     driver = db.scalar(select(models.Driver).where(models.Driver.id == driver_id))
@@ -68,7 +68,7 @@ def update_driver(
 def delete_driver(
         driver_id: int,
         db: Session = Depends(get_db),
-        current_admin: models.User = Depends(require_admin),
+        _current_admin: models.User = Depends(require_admin),
 ):
     """Delete a driver by ID."""
     driver = db.scalar(select(models.Driver).where(models.Driver.id == driver_id))
