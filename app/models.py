@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, UniqueConstraint, false
@@ -89,3 +89,60 @@ class FavoriteCircuit(Base):
     )
     circuit: Mapped[Circuit] = relationship(lazy="joined")
     __table_args__ = (UniqueConstraint("user_id", "circuit_id"),)
+
+
+class Race(Base):
+    __tablename__ = "races"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(nullable=False)
+    season: Mapped[int] = mapped_column(nullable=False)
+    round: Mapped[int] = mapped_column(nullable=False)
+    race_date: Mapped[date] = mapped_column(nullable=False)
+    circuit_id: Mapped[int] = mapped_column(
+        ForeignKey("circuits.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    circuit: Mapped[Circuit] = relationship(lazy="joined")
+    results: Mapped[list["RaceResult"]] = relationship(
+        back_populates="race",
+        cascade="all, delete-orphan",
+    )
+    __table_args__ = (UniqueConstraint("season", "round"),)
+
+
+class FavoriteRace(Base):
+    __tablename__ = "favorite_races"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    race_id: Mapped[int] = mapped_column(
+        ForeignKey("races.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    race: Mapped[Race] = relationship(lazy="joined")
+    __table_args__ = (UniqueConstraint("user_id", "race_id"),)
+
+
+class RaceResult(Base):
+    __tablename__ = "race_results"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    race_id: Mapped[int] = mapped_column(
+        ForeignKey("races.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    driver_id: Mapped[int] = mapped_column(
+        ForeignKey("drivers.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    grid_position: Mapped[Optional[int]] = mapped_column()
+    position: Mapped[Optional[int]] = mapped_column()
+    points: Mapped[float] = mapped_column(default=0.0)
+    status: Mapped[Optional[str]] = mapped_column()
+    race: Mapped[Race] = relationship(back_populates="results")
+    driver: Mapped[Driver] = relationship(lazy="joined")
+    __table_args__ = (UniqueConstraint("race_id", "driver_id"),)

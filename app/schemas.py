@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional
 from pydantic import BaseModel, EmailStr, Field
 
@@ -117,6 +117,77 @@ class FavoriteCircuitOut(BaseModel):
     user_id: int
     circuit_id: int
     circuit: CircuitOut
+
+    class Config:
+        from_attributes = True
+
+
+class RaceBase(BaseModel):
+    name: str
+    season: int
+    round: int
+    race_date: date
+    circuit_id: int
+
+
+class RaceCreate(RaceBase):
+    pass
+
+
+class RaceUpdate(BaseModel):
+    name: Optional[str] = None
+    season: Optional[int] = None
+    round: Optional[int] = None
+    race_date: Optional[date] = None
+    circuit_id: Optional[int] = None
+
+
+class RaceOut(RaceBase):
+    id: int
+    circuit: CircuitOut
+
+    class Config:
+        from_attributes = True
+
+
+class FavoriteRaceCreate(BaseModel):
+    race_id: int
+
+
+class FavoriteRaceOut(BaseModel):
+    id: int
+    user_id: int
+    race_id: int
+    race: RaceOut
+
+    class Config:
+        from_attributes = True
+
+
+class RaceResultCreate(BaseModel):
+    driver_id: int
+    grid_position: Optional[int] = None
+    position: Optional[int] = None
+    points: float = 0.0
+    status: Optional[str] = None
+
+
+class RaceResultUpdate(BaseModel):
+    grid_position: Optional[int] = None
+    position: Optional[int] = None
+    points: Optional[float] = None
+    status: Optional[str] = None
+
+
+class RaceResultOut(BaseModel):
+    id: int
+    race_id: int
+    driver_id: int
+    grid_position: Optional[int]
+    position: Optional[int]
+    points: float
+    status: Optional[str]
+    driver: DriverOut
 
     class Config:
         from_attributes = True
