@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..auth import require_admin
 from ..database import get_db
+from ..season_history import recalculate_season_history
 
 router = APIRouter(prefix="/circuits", tags=["circuits"])
 
@@ -27,6 +28,38 @@ def create_circuit(
 def list_circuits(db: Session = Depends(get_db)):
     """List all circuits."""
     return db.scalars(select(models.Circuit)).all()
+
+
+@router.get("/{circuit_id}/lap-record", response_model=schemas.CircuitLapRecordOut)
+def get_circuit_lap_record(circuit_id: int, db: Session = Depends(get_db)):
+    """Return the fastest recorded lap for one circuit."""
+    circuit = db.scalar(select(models.Circuit).where(models.Circuit.id == circuit_id))
+    if not circuit:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Circuit not found")
+
+    record = db.scalar(
+        select(models.RaceResult)
+        .join(models.Race)
+        .where(
+            models.Race.circuit_id == circuit_id,
+            models.RaceResult.fastest_lap_time_ms.is_not(None),
+        )
+        .order_by(models.RaceResult.fastest_lap_time_ms)
+    )
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lap record not available",
+        )
+
+    return schemas.CircuitLapRecordOut(
+        circuit_id=circuit_id,
+        race_id=record.race_id,
+        race_name=record.race.name,
+        driver_id=record.driver_id,
+        fastest_lap_time_ms=record.fastest_lap_time_ms,
+        driver=record.driver,
+    )
 
 
 @router.get("/{circuit_id}", response_model=schemas.CircuitOut)
@@ -69,5 +102,13 @@ def delete_circuit(
     if not circuit:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Circuit not found")
 
+    affected_seasons = db.scalars(
+        select(models.Race.season)
+        .where(models.Race.circuit_id == circuit_id)
+        .distinct()
+    ).all()
     db.delete(circuit)
+    db.flush()
+    for season in affected_seasons:
+        recalculate_season_history(season, db)
     db.commit()

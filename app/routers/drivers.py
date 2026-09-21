@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..auth import require_admin
 from ..database import get_db
+from ..season_history import recalculate_season_history
 
 router = APIRouter(prefix="/drivers", tags=["drivers"])
 
@@ -78,5 +79,14 @@ def delete_driver(
             detail="Driver not found",
         )
 
+    affected_seasons = db.scalars(
+        select(models.Race.season)
+        .join(models.RaceResult)
+        .where(models.RaceResult.driver_id == driver_id)
+        .distinct()
+    ).all()
     db.delete(driver)
+    db.flush()
+    for season in affected_seasons:
+        recalculate_season_history(season, db)
     db.commit()

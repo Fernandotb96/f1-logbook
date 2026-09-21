@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..auth import require_admin
 from ..database import get_db
+from ..season_history import recalculate_season_history
 
 router = APIRouter(prefix="/races", tags=["races"])
 
@@ -19,6 +20,10 @@ def create_race(
     circuit = db.scalar(select(models.Circuit).where(models.Circuit.id == race.circuit_id))
     if not circuit:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Circuit not found")
+
+    season = db.scalar(select(models.Season).where(models.Season.year == race.season))
+    if not season:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Season not found")
 
     existing_race = db.scalar(
         select(models.Race).where(
@@ -67,6 +72,7 @@ def update_race(
     if not race:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Race not found")
 
+    previous_season = race.season
     changes = updated.model_dump(exclude_unset=True)
 
     target_circuit_id = changes.get("circuit_id", race.circuit_id)
@@ -77,6 +83,12 @@ def update_race(
     )
     if not circuit:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Circuit not found")
+
+    season = db.scalar(
+        select(models.Season).where(models.Season.year == target_season)
+    )
+    if not season:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Season not found")
 
     existing_race = db.scalar(
         select(models.Race).where(
@@ -94,6 +106,10 @@ def update_race(
     for field, value in changes.items():
         setattr(race, field, value)
 
+    db.flush()
+    recalculate_season_history(previous_season, db)
+    if race.season != previous_season:
+        recalculate_season_history(race.season, db)
     db.commit()
     db.refresh(race)
     return race
@@ -110,5 +126,8 @@ def delete_race(
     if not race:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Race not found")
 
+    season = race.season
     db.delete(race)
+    db.flush()
+    recalculate_season_history(season, db)
     db.commit()

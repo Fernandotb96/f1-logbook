@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..auth import require_admin
 from ..database import get_db
+from ..season_history import recalculate_season_history
 
 router = APIRouter(prefix="/races", tags=["race results"])
 
@@ -44,6 +45,18 @@ def create_race_result(
     if not driver:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Driver not found")
 
+    if result.constructor_id is not None:
+        constructor = db.scalar(
+            select(models.Constructor).where(
+                models.Constructor.id == result.constructor_id
+            )
+        )
+        if not constructor:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Constructor not found",
+            )
+
     existing = db.scalar(
         select(models.RaceResult).where(
             models.RaceResult.race_id == race_id,
@@ -58,6 +71,8 @@ def create_race_result(
 
     new_result = models.RaceResult(race_id=race_id, **result.model_dump())
     db.add(new_result)
+    db.flush()
+    recalculate_season_history(race.season, db)
     db.commit()
     db.refresh(new_result)
     return new_result
@@ -87,9 +102,24 @@ def update_race_result(
             detail="Race result not found",
         )
 
-    for field, value in updated.model_dump(exclude_unset=True).items():
+    changes = updated.model_dump(exclude_unset=True)
+    if "constructor_id" in changes and changes["constructor_id"] is not None:
+        constructor = db.scalar(
+            select(models.Constructor).where(
+                models.Constructor.id == changes["constructor_id"]
+            )
+        )
+        if not constructor:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Constructor not found",
+            )
+
+    for field, value in changes.items():
         setattr(result, field, value)
 
+    db.flush()
+    recalculate_season_history(result.race.season, db)
     db.commit()
     db.refresh(result)
     return result
@@ -115,5 +145,8 @@ def delete_race_result(
             detail="Race result not found",
         )
 
+    season = result.race.season
     db.delete(result)
+    db.flush()
+    recalculate_season_history(season, db)
     db.commit()
