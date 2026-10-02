@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .. import models, schemas
-from ..database import get_db
+from ... import models, schemas
+from ...database import get_db
 
 router = APIRouter(tags=["driver season history"])
 
@@ -43,6 +43,9 @@ def get_driver_stats(driver_id: int, db: Session = Depends(get_db)):
         races_entered=sum(history.races_entered for history in histories),
         wins=sum(history.wins for history in histories),
         podiums=sum(history.podiums for history in histories),
+        sprints_entered=sum(history.sprints_entered for history in histories),
+        sprint_wins=sum(history.sprint_wins for history in histories),
+        sprint_podiums=sum(history.sprint_podiums for history in histories),
         points=sum(history.points for history in histories),
         championships_won=sum(
             history.is_champion for history in histories

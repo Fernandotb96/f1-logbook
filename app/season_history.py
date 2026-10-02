@@ -14,7 +14,7 @@ def recalculate_season_history(season: int, db: Session) -> None:
     if not season_record:
         return
 
-    rows = db.execute(
+    race_rows = db.execute(
         select(
             models.RaceResult.driver_id,
             models.RaceResult.position,
@@ -24,18 +24,31 @@ def recalculate_season_history(season: int, db: Session) -> None:
         .where(models.Race.season == season)
     ).all()
 
+    sprint_rows = db.execute(
+        select(
+            models.SprintResult.driver_id,
+            models.SprintResult.position,
+            models.SprintResult.points,
+        )
+        .join(models.Race, models.SprintResult.race_id == models.Race.id)
+        .where(models.Race.season == season)
+    ).all()
+
     driver_stats = defaultdict(
         lambda: {
             "races_entered": 0,
             "wins": 0,
             "podiums": 0,
+            "sprints_entered": 0,
+            "sprint_wins": 0,
+            "sprint_podiums": 0,
             "points": 0.0,
             "position_counts": defaultdict(int),
         }
     )
     highest_position = 0
 
-    for driver_id, position, points in rows:
+    for driver_id, position, points in race_rows:
         stats = driver_stats[driver_id]
         stats["races_entered"] += 1
         stats["points"] += float(points)
@@ -48,6 +61,17 @@ def recalculate_season_history(season: int, db: Session) -> None:
                 stats["wins"] += 1
             if position <= 3:
                 stats["podiums"] += 1
+
+    for driver_id, position, points in sprint_rows:
+        stats = driver_stats[driver_id]
+        stats["sprints_entered"] += 1
+        stats["points"] += float(points)
+
+        if position is not None:
+            if position == 1:
+                stats["sprint_wins"] += 1
+            if position <= 3:
+                stats["sprint_podiums"] += 1
 
     ordered_drivers = sorted(
         driver_stats.items(),
@@ -77,6 +101,9 @@ def recalculate_season_history(season: int, db: Session) -> None:
         history.races_entered = stats["races_entered"]
         history.wins = stats["wins"]
         history.podiums = stats["podiums"]
+        history.sprints_entered = stats["sprints_entered"]
+        history.sprint_wins = stats["sprint_wins"]
+        history.sprint_podiums = stats["sprint_podiums"]
         history.points = stats["points"]
         history.championship_position = championship_position
         history.is_champion = (

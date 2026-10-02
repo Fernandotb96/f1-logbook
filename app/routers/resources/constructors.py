@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .. import models, schemas
-from ..auth import require_admin
-from ..database import get_db
+from ... import models, schemas
+from ...auth import require_admin
+from ...database import get_db
 
 router = APIRouter(prefix="/constructors", tags=["constructors"])
 

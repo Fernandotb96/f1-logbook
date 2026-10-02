@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .. import models, schemas
-from ..auth import require_admin
-from ..database import get_db
-from ..season_history import recalculate_season_history
+from ... import models, schemas
+from ...auth import require_admin
+from ...database import get_db
+from ...season_history import recalculate_season_history
 
 router = APIRouter(prefix="/circuits", tags=["circuits"])
 

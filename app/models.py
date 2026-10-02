@@ -129,6 +129,10 @@ class Race(Base):
         back_populates="race",
         cascade="all, delete-orphan",
     )
+    sprint_results: Mapped[list["SprintResult"]] = relationship(
+        back_populates="race",
+        cascade="all, delete-orphan",
+    )
     __table_args__ = (UniqueConstraint("season", "round"),)
 
 
@@ -174,6 +178,31 @@ class RaceResult(Base):
     __table_args__ = (UniqueConstraint("race_id", "driver_id"),)
 
 
+class SprintResult(Base):
+    __tablename__ = "sprint_results"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    race_id: Mapped[int] = mapped_column(
+        ForeignKey("races.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    driver_id: Mapped[int] = mapped_column(
+        ForeignKey("drivers.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    constructor_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("constructors.id", ondelete="SET NULL"),
+    )
+    grid_position: Mapped[Optional[int]] = mapped_column()
+    position: Mapped[Optional[int]] = mapped_column()
+    points: Mapped[float] = mapped_column(default=0.0)
+    status: Mapped[Optional[str]] = mapped_column()
+    race: Mapped[Race] = relationship(back_populates="sprint_results")
+    driver: Mapped[Driver] = relationship(lazy="joined")
+    constructor: Mapped[Optional[Constructor]] = relationship(lazy="joined")
+    __table_args__ = (UniqueConstraint("race_id", "driver_id"),)
+
+
 class DriverSeasonHistory(Base):
     __tablename__ = "driver_season_history"
 
@@ -189,6 +218,9 @@ class DriverSeasonHistory(Base):
     races_entered: Mapped[int] = mapped_column(default=0)
     wins: Mapped[int] = mapped_column(default=0)
     podiums: Mapped[int] = mapped_column(default=0)
+    sprints_entered: Mapped[int] = mapped_column(default=0)
+    sprint_wins: Mapped[int] = mapped_column(default=0)
+    sprint_podiums: Mapped[int] = mapped_column(default=0)
     points: Mapped[float] = mapped_column(default=0.0)
     championship_position: Mapped[int] = mapped_column(nullable=False)
     is_champion: Mapped[bool] = mapped_column(

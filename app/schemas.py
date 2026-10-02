@@ -235,6 +235,39 @@ class RaceResultOut(BaseModel):
         from_attributes = True
 
 
+class SprintResultCreate(BaseModel):
+    driver_id: int
+    constructor_id: Optional[int] = None
+    grid_position: Optional[int] = None
+    position: Optional[int] = None
+    points: float = 0.0
+    status: Optional[str] = None
+
+
+class SprintResultUpdate(BaseModel):
+    constructor_id: Optional[int] = None
+    grid_position: Optional[int] = None
+    position: Optional[int] = None
+    points: Optional[float] = None
+    status: Optional[str] = None
+
+
+class SprintResultOut(BaseModel):
+    id: int
+    race_id: int
+    driver_id: int
+    constructor_id: Optional[int]
+    grid_position: Optional[int]
+    position: Optional[int]
+    points: float
+    status: Optional[str]
+    driver: DriverOut
+    constructor: Optional[ConstructorOut]
+
+    class Config:
+        from_attributes = True
+
+
 class DriverSeasonHistoryOut(BaseModel):
     id: int
     driver_id: int
@@ -242,6 +275,9 @@ class DriverSeasonHistoryOut(BaseModel):
     races_entered: int
     wins: int
     podiums: int
+    sprints_entered: int
+    sprint_wins: int
+    sprint_podiums: int
     points: float
     championship_position: int
     is_champion: bool
@@ -256,6 +292,9 @@ class DriverStatsOut(BaseModel):
     races_entered: int
     wins: int
     podiums: int
+    sprints_entered: int
+    sprint_wins: int
+    sprint_podiums: int
     points: float
     championships_won: int
 
@@ -267,3 +306,20 @@ class CircuitLapRecordOut(BaseModel):
     driver_id: int
     fastest_lap_time_ms: int
     driver: DriverOut
+
+
+class SyncEntityCountOut(BaseModel):
+    created: int
+    updated: int
+
+
+class SeasonSyncOut(BaseModel):
+    season: int
+    is_completed: bool
+    seasons: SyncEntityCountOut
+    circuits: SyncEntityCountOut
+    drivers: SyncEntityCountOut
+    constructors: SyncEntityCountOut
+    races: SyncEntityCountOut
+    race_results: SyncEntityCountOut
+    sprint_results: SyncEntityCountOut
