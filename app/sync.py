@@ -375,6 +375,10 @@ def sync_season(
     elif _update_values(season, {"is_completed": target_completed}):
         counts["seasons"]["updated"] += 1
 
+    # The session used by the API disables autoflush. Insert the parent season
+    # before creating races that reference it with a foreign key.
+    db.flush()
+
     for race_data in calendar_races:
         if not isinstance(race_data, dict):
             raise JolpicaSyncError(f"Invalid calendar race for {year}")

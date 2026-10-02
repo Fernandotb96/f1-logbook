@@ -2,7 +2,7 @@ from fastapi import FastAPI
 
 from . import models
 from .database import engine
-from .routers import auth
+from .routers import auth, sync
 from .routers.favorites import (
     favorite_circuits,
     favorite_drivers,
@@ -17,7 +17,6 @@ from .routers.resources import (
     races,
     seasons,
     sprint_results,
-    sync,
 )
 
 models.Base.metadata.create_all(bind=engine)
