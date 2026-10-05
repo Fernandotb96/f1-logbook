@@ -45,4 +45,6 @@ def root():
 
 # uvicorn app.main:app --reload
 
-# TODO! Crear endpoints /creat-admin para modificar el atributo de un usuario is_admin
+# TODO! Crear endpoints /creat-admin para modificar el atributo de un usuario is_admin, contraseñas u otros
+# TODO! Deployment
+# TODO! Front-end? A lo mejor con la IA

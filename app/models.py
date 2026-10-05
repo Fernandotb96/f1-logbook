@@ -8,6 +8,38 @@ from sqlalchemy.sql import func
 from .database import Base
 
 
+# =============================================================================
+# Users and authentication
+# =============================================================================
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    username: Mapped[str] = mapped_column(unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(
+        unique=True,
+        nullable=False,
+    )
+    hashed_password: Mapped[str] = mapped_column(
+        nullable=False,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+    is_admin: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=false(),
+    )
+
+
+# =============================================================================
+# Reference data: drivers, circuits, constructors
+# =============================================================================
+
 class Driver(Base):
     __tablename__ = "drivers"
 
@@ -41,6 +73,10 @@ class Constructor(Base):
     nationality: Mapped[Optional[str]] = mapped_column()
 
 
+# =============================================================================
+# Seasons
+# =============================================================================
+
 class Season(Base):
     __tablename__ = "seasons"
 
@@ -53,61 +89,9 @@ class Season(Base):
     )
 
 
-class User(Base):
-    __tablename__ = "users"
-
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    username: Mapped[str] = mapped_column(unique=True, nullable=False)
-    email: Mapped[str] = mapped_column(
-        unique=True,
-        nullable=False,
-    )
-    hashed_password: Mapped[str] = mapped_column(
-        nullable=False,
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-    )
-    is_admin: Mapped[bool] = mapped_column(
-        Boolean,
-        nullable=False,
-        default=False,
-        server_default=false(),
-    )
-
-
-class FavoriteDriver(Base):
-    __tablename__ = "favorite_drivers"
-
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    driver_id: Mapped[int] = mapped_column(
-        ForeignKey("drivers.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    driver: Mapped[Driver] = relationship(lazy="joined")
-    __table_args__ = (UniqueConstraint("user_id", "driver_id"),)
-
-
-class FavoriteCircuit(Base):
-    __tablename__ = "favorite_circuits"
-
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    circuit_id: Mapped[int] = mapped_column(
-        ForeignKey("circuits.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    circuit: Mapped[Circuit] = relationship(lazy="joined")
-    __table_args__ = (UniqueConstraint("user_id", "circuit_id"),)
-
+# =============================================================================
+# Races
+# =============================================================================
 
 class Race(Base):
     __tablename__ = "races"
@@ -136,21 +120,9 @@ class Race(Base):
     __table_args__ = (UniqueConstraint("season", "round"),)
 
 
-class FavoriteRace(Base):
-    __tablename__ = "favorite_races"
-
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    race_id: Mapped[int] = mapped_column(
-        ForeignKey("races.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    race: Mapped[Race] = relationship(lazy="joined")
-    __table_args__ = (UniqueConstraint("user_id", "race_id"),)
-
+# =============================================================================
+# Results: race classification and sprint sessions
+# =============================================================================
 
 class RaceResult(Base):
     __tablename__ = "race_results"
@@ -203,6 +175,10 @@ class SprintResult(Base):
     __table_args__ = (UniqueConstraint("race_id", "driver_id"),)
 
 
+# =============================================================================
+# Derived data: recomputed from results, never written directly
+# =============================================================================
+
 class DriverSeasonHistory(Base):
     __tablename__ = "driver_season_history"
 
@@ -231,3 +207,55 @@ class DriverSeasonHistory(Base):
     )
     driver: Mapped[Driver] = relationship(lazy="joined")
     __table_args__ = (UniqueConstraint("driver_id", "season"),)
+
+
+# =============================================================================
+# User favourites: many-to-many joins between users and reference data
+# =============================================================================
+
+class FavoriteDriver(Base):
+    __tablename__ = "favorite_drivers"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    driver_id: Mapped[int] = mapped_column(
+        ForeignKey("drivers.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    driver: Mapped[Driver] = relationship(lazy="joined")
+    __table_args__ = (UniqueConstraint("user_id", "driver_id"),)
+
+
+class FavoriteCircuit(Base):
+    __tablename__ = "favorite_circuits"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    circuit_id: Mapped[int] = mapped_column(
+        ForeignKey("circuits.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    circuit: Mapped[Circuit] = relationship(lazy="joined")
+    __table_args__ = (UniqueConstraint("user_id", "circuit_id"),)
+
+
+class FavoriteRace(Base):
+    __tablename__ = "favorite_races"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    race_id: Mapped[int] = mapped_column(
+        ForeignKey("races.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    race: Mapped[Race] = relationship(lazy="joined")
+    __table_args__ = (UniqueConstraint("user_id", "race_id"),)

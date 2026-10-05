@@ -1,7 +1,43 @@
 from datetime import date, datetime
 from typing import Optional
+
 from pydantic import BaseModel, EmailStr, Field
 
+
+# =============================================================================
+# Authentication
+# =============================================================================
+
+class UserCreate(BaseModel):
+    username: str
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=72)
+
+
+class UserOut(BaseModel):
+    id: int
+    username: str
+    email: EmailStr
+    created_at: datetime
+    is_admin: bool
+
+    class Config:
+        from_attributes = True
+
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+# =============================================================================
+# Reference data: drivers, circuits, constructors
+# =============================================================================
 
 class DriverBase(BaseModel):
     jolpica_id: Optional[str] = None
@@ -84,6 +120,10 @@ class ConstructorOut(ConstructorBase):
         from_attributes = True
 
 
+# =============================================================================
+# Seasons
+# =============================================================================
+
 class SeasonBase(BaseModel):
     year: int
     is_completed: bool = False
@@ -102,60 +142,9 @@ class SeasonOut(SeasonBase):
         from_attributes = True
 
 
-class UserCreate(BaseModel):
-    username: str
-    email: EmailStr
-    password: str = Field(min_length=8, max_length=72)
-
-
-class UserOut(BaseModel):
-    id: int
-    username: str
-    email: EmailStr
-    created_at: datetime
-    is_admin: bool
-
-    class Config:
-        from_attributes = True
-
-
-class UserLogin(BaseModel):
-    email: EmailStr
-    password: str
-
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-
-
-class FavoriteDriverCreate(BaseModel):
-    driver_id: int
-
-
-class FavoriteDriverOut(BaseModel):
-    id: int
-    user_id: int
-    driver_id: int
-    driver: DriverOut
-
-    class Config:
-        from_attributes = True
-
-
-class FavoriteCircuitCreate(BaseModel):
-    circuit_id: int
-
-
-class FavoriteCircuitOut(BaseModel):
-    id: int
-    user_id: int
-    circuit_id: int
-    circuit: CircuitOut
-
-    class Config:
-        from_attributes = True
-
+# =============================================================================
+# Races
+# =============================================================================
 
 class RaceBase(BaseModel):
     name: str
@@ -185,19 +174,9 @@ class RaceOut(RaceBase):
         from_attributes = True
 
 
-class FavoriteRaceCreate(BaseModel):
-    race_id: int
-
-
-class FavoriteRaceOut(BaseModel):
-    id: int
-    user_id: int
-    race_id: int
-    race: RaceOut
-
-    class Config:
-        from_attributes = True
-
+# =============================================================================
+# Results: race classification and sprint sessions
+# =============================================================================
 
 class RaceResultCreate(BaseModel):
     driver_id: int
@@ -268,6 +247,56 @@ class SprintResultOut(BaseModel):
         from_attributes = True
 
 
+# =============================================================================
+# User favourites
+# =============================================================================
+
+class FavoriteDriverCreate(BaseModel):
+    driver_id: int
+
+
+class FavoriteDriverOut(BaseModel):
+    id: int
+    user_id: int
+    driver_id: int
+    driver: DriverOut
+
+    class Config:
+        from_attributes = True
+
+
+class FavoriteCircuitCreate(BaseModel):
+    circuit_id: int
+
+
+class FavoriteCircuitOut(BaseModel):
+    id: int
+    user_id: int
+    circuit_id: int
+    circuit: CircuitOut
+
+    class Config:
+        from_attributes = True
+
+
+class FavoriteRaceCreate(BaseModel):
+    race_id: int
+
+
+class FavoriteRaceOut(BaseModel):
+    id: int
+    user_id: int
+    race_id: int
+    race: RaceOut
+
+    class Config:
+        from_attributes = True
+
+
+# =============================================================================
+# Derived data: statistics and standings
+# =============================================================================
+
 class DriverSeasonHistoryOut(BaseModel):
     id: int
     driver_id: int
@@ -307,6 +336,10 @@ class CircuitLapRecordOut(BaseModel):
     fastest_lap_time_ms: int
     driver: DriverOut
 
+
+# =============================================================================
+# Synchronisation
+# =============================================================================
 
 class SyncEntityCountOut(BaseModel):
     created: int
