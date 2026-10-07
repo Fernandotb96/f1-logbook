@@ -21,6 +21,7 @@ statistics and championship standings.
 - [Authentication and authorization](#authentication-and-authorization)
 - [API reference](#api-reference)
 - [Getting started](#getting-started)
+- [Deployment (Render)](#deployment-render)
 - [Project layout](#project-layout)
 - [Design decisions](#design-decisions)
 - [Current limitations](#current-limitations)
@@ -29,7 +30,7 @@ statistics and championship standings.
 
 ## Features
 
-- **Relational data modelling** — 10 tables with foreign keys, uniqueness
+- **Relational data modelling** — 12 tables with foreign keys, uniqueness
   constraints, and database-level cascade rules.
 - **Full CRUD** across drivers, circuits, constructors, seasons, races, race
   results, and sprint results.
@@ -170,13 +171,15 @@ licenses, stored separately from the automated sync.
 - `POST /auth/register` creates an account and returns the new user.
 - `POST /auth/login` returns a short-lived bearer token.
 - `GET /auth/me` returns the authenticated user.
+- `PATCH /auth/users/{user_id}/admin` grants or revokes administrator rights on
+  another account. An administrator cannot revoke their own.
 
 Two dependencies enforce access control:
 
-| Dependency         | Grants                                             |
-|--------------------|----------------------------------------------------|
-| `get_current_user` | Any authenticated user. Owns their own favourites. |
-| `require_admin`    | Writes to reference data and the sync endpoint.    |
+| Dependency         | Grants                                                                       |
+|--------------------|------------------------------------------------------------------------------|
+| `get_current_user` | Any authenticated user. Owns their own favourites.                           |
+| `require_admin`    | Writes to reference data, user promotion, and the sync endpoint.             |
 
 Reads on reference data are intentionally **public** — the encyclopedia is
 readable without an account — while every mutation that would alter shared F1
@@ -187,12 +190,12 @@ maximum on `password` respects bcrypt's input limit.
 
 ## API reference
 
-Fifty endpoints across thirteen routers. Full interactive documentation is generated at
+Fifty-one endpoints across thirteen routers. Full interactive documentation is generated at
 `/docs` (Swagger UI) and `/redoc` when the server is running.
 
 | Group              | Endpoints                                                                                      |
 |--------------------|------------------------------------------------------------------------------------------------|
-| **Auth**           | `POST /auth/register`, `POST /auth/login`, `GET /auth/me`                                      |
+| **Auth**           | `POST /auth/register`, `POST /auth/login`, `GET /auth/me`, `PATCH /auth/users/{id}/admin` *(admin)* |
 | **Sync**           | `POST /sync/{year}` *(admin)*                                                                  |
 | **Drivers**        | `POST` `GET /`, `GET` `PATCH` `DELETE /{driver_id}`                                            |
 | **Driver stats**   | `GET /drivers/{id}/season-history`, `GET /drivers/{id}/stats`                                  |
@@ -258,16 +261,96 @@ uvicorn app.main:app --reload
 ### Populating data
 
 1. Register a user.
-2. Promote it to admin, since no self-service path exists yet:
+2. Promote it to admin. There is no self-service path for the *first*
+   administrator, so this one step takes a direct database write:
    ```sql
    UPDATE users SET is_admin = true WHERE email = 'you@example.com';
    ```
+   Every administrator after that can be promoted over the API with
+   `PATCH /auth/users/{user_id}/admin`.
 3. Request a token and trigger a sync:
    ```bash
    curl -X POST http://127.0.0.1:8000/sync/2024 -H "Authorization: Bearer <token>"
    ```
 
 Tables are created automatically at startup.
+
+---
+
+## Deployment (Render)
+
+The API runs on Render as a **Web Service** backed by a **PostgreSQL**
+instance, both created from the dashboard.
+
+### 1. Create the database
+
+**New → PostgreSQL**, Free plan. Note the *External Database URL*, which looks
+like `postgres://USER:PASSWORD@HOST/DBNAME`.
+
+### 2. Create the web service
+
+**New → Web Service**, pointed at this repository.
+
+| Setting        | Value                                              |
+|----------------|----------------------------------------------------|
+| Language       | Python 3                                           |
+| Build command  | `pip install -r requirements.txt`                  |
+| Start command  | `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
+
+`--host 0.0.0.0` and `--port $PORT` are not optional: Render cannot reach the
+container on `127.0.0.1`, and the port it assigns is only known at runtime.
+
+### 3. Set the environment variables
+
+Settings → Environment:
+
+| Variable                     | Value                                                             |
+|------------------------------|-------------------------------------------------------------------|
+| `DATABASE_URL`               | The external database URL with its scheme rewritten — see step 4  |
+| `SECRET_KEY`                 | A long random string. Generate a fresh one for production; never reuse a local key |
+| `ALGORITHM`                  | `HS256`                                                           |
+| `ACCESS_TOKEN_EXPIRE_MINUTES`| `30`                                                              |
+| `PYTHON_VERSION`             | `3.14`. Optional: `.python-version`|
+
+### 4. Rewrite the database URL
+
+Render hands out `postgres://…`, but SQLAlchemy needs the driver to be
+explicit. Change the scheme, and nothing else:
+
+```
+postgres://USER:PASSWORD@HOST/DBNAME
+postgresql+psycopg2://USER:PASSWORD@HOST/DBNAME
+```
+
+Everything after the scheme stays byte-for-byte identical — including the
+absence of a port number, which defaults to 5432.
+
+### 5. Deploy
+
+Push to `main`. Render installs the pinned dependencies, `app/main.py` creates
+the tables at import time, and the interactive documentation appears at
+`https://HERE_YOUR_SERVICE.onrender.com/docs`.
+
+Promote the first administrator once the database exists, as described in
+[Populating data](#populating-data).
+
+### Free tier caveats
+
+- **The free database expires 30 days after it is created**, whether or not it
+  has been used. You then get a **14-day grace period** to upgrade to a paid
+  plan; when that ends Render deletes the database and all of its data. Create
+  another free database when you need one — the schema is rebuilt
+  automatically at startup, but the rows are gone, so export anything worth
+  keeping beforehand.
+- **The web service spins down after 15 minutes without traffic.** The first
+  request afterwards takes about a minute to answer. `pool_pre_ping=True` is
+  already set in `app/database.py`, so a connection that died while the service
+  slept is discarded and replaced instead of failing the request.
+- The workspace gets **750 free instance hours per calendar month**, shared
+  across every free service and reset on the 1st.
+- Free compute is **0.1 CPU / 512 MB RAM** and free storage is **1 GB**.
+- There is **no autoscaling and no cron**: this service is a single process,
+  which is enough for a read-mostly API with an admin-triggered sync.
 
 ---
 
@@ -326,7 +409,8 @@ Known and documented rather than hidden:
 - **No automated tests.** The sync layer is written with an injectable HTTP
   client specifically to make this practical.
 - **No pagination** on list endpoints; they return full table scans.
-- **No admin bootstrap.** The first administrator must be promoted manually.
+- **No admin bootstrap.** The first administrator must be promoted manually;
+  every administrator after that can be granted through the API.
 - **No user management.** The application does not support password reset or
   account deletion.
 - **No frontend.** The API is only accessible from the command line.

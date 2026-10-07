@@ -4,10 +4,10 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app import models, schemas
-from app.auth import require_admin
-from app.database import get_db
-from app.sync import JolpicaSyncError, sync_season
+from .. import models, schemas
+from ..auth import require_admin
+from ..database import get_db
+from ..sync import JolpicaSyncError, sync_season
 
 
 logger = logging.getLogger(__name__)
