@@ -3,7 +3,13 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 
 from .. import models, schemas
-from ..auth import create_access_token, get_current_user, hash_password, verify_password
+from ..auth import (
+    create_access_token,
+    get_current_user,
+    hash_password,
+    require_admin,
+    verify_password,
+)
 from ..database import get_db
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -66,3 +72,30 @@ def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
 def read_me(current_user: models.User = Depends(get_current_user)):
     """Return the currently authenticated user."""
     return current_user
+
+
+@router.patch("/users/{user_id}/admin", response_model=schemas.UserOut)
+def set_user_admin(
+    user_id: int,
+    payload: schemas.UserAdminUpdate,
+    db: Session = Depends(get_db),
+    current_admin: models.User = Depends(require_admin),
+):
+    """Grant or revoke administrator privileges on a user. Administrators only."""
+    target_user = db.scalar(select(models.User).where(models.User.id == user_id))
+    if not target_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    if current_admin.id == target_user.id and not payload.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Cannot revoke your own administrator privileges",
+        )
+
+    target_user.is_admin = payload.is_admin
+    db.commit()
+    db.refresh(target_user)
+    return target_user

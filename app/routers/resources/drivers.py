@@ -79,12 +79,20 @@ def delete_driver(
             detail="Driver not found",
         )
 
-    affected_seasons = db.scalars(
+    race_seasons = db.scalars(
         select(models.Race.season)
         .join(models.RaceResult)
         .where(models.RaceResult.driver_id == driver_id)
         .distinct()
     ).all()
+    sprint_seasons = db.scalars(
+        select(models.Race.season)
+        .join(models.SprintResult)
+        .where(models.SprintResult.driver_id == driver_id)
+        .distinct()
+    ).all()
+    affected_seasons = sorted(set(race_seasons) | set(sprint_seasons))
+
     db.delete(driver)
     db.flush()
     for season in affected_seasons:

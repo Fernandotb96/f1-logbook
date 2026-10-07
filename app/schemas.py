@@ -30,6 +30,10 @@ class UserLogin(BaseModel):
     password: str
 
 
+class UserAdminUpdate(BaseModel):
+    is_admin: bool
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
